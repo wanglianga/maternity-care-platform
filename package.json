@@ -1,0 +1,20 @@
+{
+  "name": "maternity-care-platform",
+  "version": "1.0.0",
+  "description": "月子中心护理套餐与探视管理平台",
+  "private": true,
+  "scripts": {
+    "install:all": "cd backend && npm install && cd ../frontend && npm install",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build:frontend": "cd frontend && npm run build",
+    "start:backend": "cd backend && npm start",
+    "start": "concurrently \"npm run start:backend\" \"npm run dev:frontend\""
+  },
+  "keywords": ["maternity", "care", "management"],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
