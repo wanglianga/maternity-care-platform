@@ -18,6 +18,13 @@ router.get('/', (req, res) => {
     filtered = filtered.filter(t => t.assignedTo === req.user.id || !t.assignedTo);
   }
   
+  if (req.user.role === ROLES.FAMILY) {
+    return res.status(403).json({
+      error: '权限不足，家属端不提供内部任务明细查询。',
+      tip: '日常护理进度、已完成的服务摘要可在"宝宝护理"和"妈妈恢复"页面查看结论性描述，内部排班、交班流程等信息不对外展示。'
+    });
+  }
+  
   res.json(filtered);
 });
 
@@ -27,6 +34,18 @@ router.get('/:id', (req, res) => {
   if (!task) {
     return res.status(404).json({ error: '任务不存在' });
   }
+  
+  if (req.user.role === ROLES.FAMILY) {
+    return res.status(403).json({
+      error: '权限不足，您无权查询内部任务详情。',
+      tip: '内部护理任务、排班调度与交班流程不对外展示。如需了解当日护理进度，请查看"宝宝护理"页面的护理活动摘要，或直接联系护士长。'
+    });
+  }
+  
+  if (req.user.role === ROLES.NURSE && task.assignedTo && task.assignedTo !== req.user.id) {
+    return res.status(403).json({ error: '权限不足，您只能查看分配给您的任务。' });
+  }
+  
   res.json(task);
 });
 

@@ -4,6 +4,44 @@ const router = express.Router();
 const { readData, writeData, DATA_FILES } = require('../data/initData');
 const { checkRole, ROLES } = require('../middleware/auth');
 
+const getFamilyMotherIds = (userId) => {
+  const users = readData(DATA_FILES.users);
+  const user = users.find(u => u.id === userId);
+  return user?.motherIds || [];
+};
+
+const sanitizeFeeForFamily = (fee) => {
+  const feeTypeName = {
+    deposit: '押金',
+    package: '套餐费',
+    extra: '增购服务费',
+    refund: '退款',
+    other: '其他费用'
+  };
+  const statusName = {
+    pending: '待支付',
+    paid: '已支付',
+    cancelled: '已取消'
+  };
+  return {
+    id: fee.id,
+    motherId: fee.motherId,
+    type: fee.type,
+    typeName: feeTypeName[fee.type] || '费用',
+    amount: Number(fee.amount) || 0,
+    currency: 'CNY',
+    status: fee.status,
+    statusName: statusName[fee.status] || fee.status,
+    summary: fee.type === 'package'
+      ? `月子护理套餐${fee.status === 'paid' ? '已结清' : '待支付'}`
+      : (fee.description || '相关费用'),
+    createdAt: fee.createdAt,
+    paidAt: fee.paidAt || null,
+    paidDate: fee.paidAt ? fee.paidAt.split('T')[0] : null,
+    notice: '费用明细与变动详情可咨询您的专属销售顾问，内部调价与审批流程不对外展示。'
+  };
+};
+
 router.get('/', (req, res) => {
   const fees = readData(DATA_FILES.fees);
   const { motherId, type, status } = req.query;
@@ -13,10 +51,9 @@ router.get('/', (req, res) => {
   if (status) filtered = filtered.filter(f => f.status === status);
   
   if (req.user.role === ROLES.FAMILY) {
-    const users = readData(DATA_FILES.users);
-    const user = users.find(u => u.id === req.user.id);
-    const motherIds = user?.motherIds || [];
+    const motherIds = getFamilyMotherIds(req.user.id);
     filtered = filtered.filter(f => motherIds.includes(f.motherId));
+    filtered = filtered.map(sanitizeFeeForFamily);
   }
   
   res.json(filtered);
@@ -28,6 +65,15 @@ router.get('/:id', (req, res) => {
   if (!fee) {
     return res.status(404).json({ error: '费用记录不存在' });
   }
+  
+  if (req.user.role === ROLES.FAMILY) {
+    const motherIds = getFamilyMotherIds(req.user.id);
+    if (!motherIds.includes(fee.motherId)) {
+      return res.status(403).json({ error: '权限不足，您无权查看此费用记录。如需查询请联系销售顾问。' });
+    }
+    return res.json(sanitizeFeeForFamily(fee));
+  }
+  
   res.json(fee);
 });
 

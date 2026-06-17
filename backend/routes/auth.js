@@ -26,13 +26,14 @@ router.post('/login', (req, res) => {
       username: user.username,
       name: user.name,
       role: user.role,
-      phone: user.phone
+      phone: user.phone,
+      motherIds: user.motherIds || []
     }
   });
 });
 
 router.post('/register', (req, res) => {
-  const { username, password, name, role, phone } = req.body;
+  const { username, password, name, role, phone, motherIds } = req.body;
   const users = readData(DATA_FILES.users);
 
   if (users.find(u => u.username === username)) {
@@ -46,6 +47,7 @@ router.post('/register', (req, res) => {
     name,
     role,
     phone,
+    motherIds: role === 'family' ? (motherIds || []) : undefined,
     createdAt: new Date().toISOString()
   };
 
@@ -60,7 +62,8 @@ router.post('/register', (req, res) => {
       username: newUser.username,
       name: newUser.name,
       role: newUser.role,
-      phone: newUser.phone
+      phone: newUser.phone,
+      motherIds: newUser.motherIds || []
     }
   });
 });

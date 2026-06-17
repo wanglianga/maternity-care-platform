@@ -4,6 +4,49 @@ const router = express.Router();
 const { readData, writeData, DATA_FILES } = require('../data/initData');
 const { checkRole, ROLES } = require('../middleware/auth');
 
+const maskPhone = (phone = '') => {
+  if (!phone) return '';
+  if (phone.length <= 7) return phone.slice(0, 2) + '*'.repeat(Math.max(0, phone.length - 2));
+  return phone.slice(0, 3) + '****' + phone.slice(-4);
+};
+
+const maskIdCard = (id = '') => {
+  if (!id) return '';
+  if (id.length <= 8) return id.slice(0, 2) + '*'.repeat(Math.max(0, id.length - 2));
+  return id.slice(0, 4) + '*'.repeat(id.length - 8) + id.slice(-4);
+};
+
+const sanitizeMotherForFamily = (mother) => {
+  const statusName = {
+    active: '在住',
+    booking: '预约中',
+    discharged: '已出院'
+  };
+  const healthStatus = mother.healthStatus || '恢复良好';
+  return {
+    id: mother.id,
+    name: mother.name,
+    age: mother.age,
+    status: mother.status,
+    statusName: statusName[mother.status] || '在住',
+    checkInDate: mother.checkInDate,
+    expectedCheckOut: mother.expectedCheckOut,
+    healthStatusSummary: healthStatus.includes('良') || healthStatus.includes('正常') ? '恢复良好，医护团队每日关注' : (healthStatus.includes('注') || healthStatus.includes('观察') ? '持续观察中，如有异常会及时通知' : healthStatus),
+    daysStayed: mother.checkInDate
+      ? Math.max(0, Math.ceil((Date.now() - new Date(mother.checkInDate).getTime()) / (1000 * 60 * 60 * 24)))
+      : 0,
+    daysRemaining: mother.expectedCheckOut
+      ? Math.max(0, Math.ceil((new Date(mother.expectedCheckOut).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+      : null,
+    contactPhoneMasked: maskPhone(mother.phone),
+    emergencyContactMasked: maskPhone(mother.emergencyContact),
+    idCardMasked: maskIdCard(mother.idCard),
+    careLevel: mother.careLevel || '标准护理',
+    remarks: '完整的医疗档案、检查报告、内部护理评估等由医护团队存档管理。如需了解详细情况，可预约每日医生巡诊时间当面沟通，或联系护士长。',
+    privacyNotice: '为保护产妇隐私，身份证号、手机号等敏感信息在本页面已脱敏展示。'
+  };
+};
+
 router.get('/', (req, res) => {
   const mothers = readData(DATA_FILES.mothers);
   const { status, roomId } = req.query;
@@ -16,6 +59,7 @@ router.get('/', (req, res) => {
     const user = users.find(u => u.id === req.user.id);
     const motherIds = user?.motherIds || [];
     filtered = filtered.filter(m => motherIds.includes(m.id));
+    filtered = filtered.map(sanitizeMotherForFamily);
   }
   
   res.json(filtered);
@@ -33,8 +77,9 @@ router.get('/:id', (req, res) => {
     const user = users.find(u => u.id === req.user.id);
     const motherIds = user?.motherIds || [];
     if (!motherIds.includes(mother.id)) {
-      return res.status(403).json({ error: '无权查看此档案' });
+      return res.status(403).json({ error: '权限不足，您无权查看此档案。产妇健康档案受医疗隐私保护，仅授权家属可见关联信息。' });
     }
+    return res.json(sanitizeMotherForFamily(mother));
   }
   
   res.json(mother);
