@@ -18,6 +18,7 @@ const ROLE_ROUTES = {
     { path: '/meals', name: 'Meals', component: () => import('@/views/nutritionist/Meals.vue'), meta: { title: '餐食管理', icon: 'KnifeFork' } },
     { path: '/disinfection', name: 'Disinfection', component: () => import('@/views/reception/Disinfection.vue'), meta: { title: '消毒记录', icon: 'MagicStick' } },
     { path: '/observations', name: 'Observations', component: () => import('@/views/common/Observations.vue'), meta: { title: '观察记录', icon: 'Document' } },
+    { path: '/baby-abnormal', name: 'BabyAbnormal', component: () => import('@/views/headnurse/BabyAbnormalManage.vue'), meta: { title: '异常观察管理', icon: 'Warning' } },
     { path: '/handovers', name: 'Handovers', component: () => import('@/views/headnurse/Handovers.vue'), meta: { title: '出院交接', icon: 'SwitchButton' } }
   ],
   sales: [
@@ -35,13 +36,16 @@ const ROLE_ROUTES = {
     { path: '/schedules', name: 'Schedules', component: () => import('@/views/headnurse/Schedules.vue'), meta: { title: '月嫂排班', icon: 'Calendar' } },
     { path: '/tasks', name: 'Tasks', component: () => import('@/views/headnurse/Tasks.vue'), meta: { title: '护理任务安排', icon: 'List' } },
     { path: '/observations', name: 'Observations', component: () => import('@/views/common/Observations.vue'), meta: { title: '观察记录', icon: 'Document' } },
+    { path: '/baby-abnormal', name: 'BabyAbnormal', component: () => import('@/views/headnurse/BabyAbnormalManage.vue'), meta: { title: '异常观察管理', icon: 'Warning' } },
+    { path: '/visitors', name: 'Visitors', component: () => import('@/views/headnurse/Visitors.vue'), meta: { title: '特殊探视审批', icon: 'UserFilled' } },
     { path: '/handovers', name: 'Handovers', component: () => import('@/views/headnurse/Handovers.vue'), meta: { title: '交班与出院', icon: 'SwitchButton' } },
     { path: '/disinfection', name: 'Disinfection', component: () => import('@/views/reception/Disinfection.vue'), meta: { title: '消毒管理', icon: 'MagicStick' } }
   ],
   nurse: [
     { path: '/dashboard', name: 'Dashboard', component: () => import('@/views/nurse/NurseDashboard.vue'), meta: { title: '月嫂工作台', icon: 'DataBoard' } },
     { path: '/tasks', name: 'Tasks', component: () => import('@/views/nurse/NurseTasks.vue'), meta: { title: '我的任务', icon: 'List' } },
-    { path: '/observations', name: 'Observations', component: () => import('@/views/nurse/ObservationRecord.vue'), meta: { title: '宝宝护理记录', icon: 'Document' } }
+    { path: '/observations', name: 'Observations', component: () => import('@/views/nurse/ObservationRecord.vue'), meta: { title: '宝宝护理记录', icon: 'Document' } },
+    { path: '/baby-abnormal', name: 'BabyAbnormal', component: () => import('@/views/nurse/BabyAbnormalRecord.vue'), meta: { title: '异常观察记录', icon: 'Warning' } }
   ],
   nutritionist: [
     { path: '/dashboard', name: 'Dashboard', component: () => import('@/views/Dashboard.vue'), meta: { title: '营养师工作台', icon: 'DataBoard' } },
@@ -170,6 +174,12 @@ const routes = [
         name: 'Observations',
         component: () => import('@/views/common/Observations.vue'),
         meta: { title: '观察记录' }
+      },
+      {
+        path: '/baby-abnormal',
+        name: 'BabyAbnormal',
+        component: () => import('@/views/common/Observations.vue'),
+        meta: { title: '异常观察' }
       },
       {
         path: '/handovers',

@@ -18,7 +18,9 @@ const DATA_FILES = {
   handovers: 'handovers.json',
   contracts: 'contracts.json',
   tasks: 'tasks.json',
-  observations: 'observations.json'
+  observations: 'observations.json',
+  babyAbnormal: 'baby_abnormal.json',
+  visitorAuthList: 'visitor_auth_list.json'
 };
 
 const ensureDataDir = () => {

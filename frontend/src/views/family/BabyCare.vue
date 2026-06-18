@@ -153,19 +153,104 @@
             </div>
           </div>
         </el-card>
+
+        <el-card shadow="hover" class="section-card abnormal-card" style="margin-top: 16px;" v-if="baby.abnormalRecords && baby.abnormalRecords.length > 0">
+          <template #header>
+            <div class="card-header">
+              <el-icon :size="18" color="#f56c6c"><Warning /></el-icon>
+              <span class="header-title">异常观察跟踪</span>
+              <el-tag size="small" type="warning" effect="light">
+                <span class="abnormal-count">{{ baby.abnormalRecords.length }} 项关注</span>
+              </el-tag>
+            </div>
+          </template>
+          <div class="abnormal-list">
+            <div
+              class="abnormal-item"
+              v-for="item in baby.abnormalRecords"
+              :key="item.id"
+              @click="viewAbnormalDetail(item)"
+            >
+              <div class="abnormal-header">
+                <el-tag :type="abnormalIndicatorType(item.indicator)" effect="dark" size="small" round>
+                  {{ item.abnormalTypeName }}
+                </el-tag>
+                <span class="abnormal-date">{{ item.reportedDate }}</span>
+              </div>
+              <div class="abnormal-conclusion">{{ item.conclusion }}</div>
+              <div class="abnormal-info">
+                <div class="info-item">
+                  <span class="info-label">观察频率</span>
+                  <span class="info-value">{{ item.observationFrequency }}</span>
+                </div>
+                <div class="info-item" v-if="item.nextRecheckTime">
+                  <span class="info-label">下次复查</span>
+                  <span class="info-value">{{ formatDateTime(item.nextRecheckTime) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="abnormal-footer-tip">
+            <el-icon :size="14" color="#909399"><InfoFilled /></el-icon>
+            <span>以上为护理团队评估后的结论性展示，详细医疗数据由医护团队内部保存。如有任何疑问请随时联系护士长。</span>
+          </div>
+        </el-card>
       </div>
     </div>
 
     <el-empty v-if="babies.length === 0 && !loading" description="暂无宝宝信息" />
+
+    <el-dialog v-model="abnormalDetailVisible" title="异常观察详情" width="520px">
+      <div v-if="currentAbnormal" class="abnormal-detail">
+        <div class="detail-header">
+          <el-tag :type="abnormalIndicatorType(currentAbnormal.indicator)" effect="dark" size="large" round>
+            {{ currentAbnormal.abnormalTypeName }}
+          </el-tag>
+          <span class="detail-date">记录日期：{{ currentAbnormal.reportedDate }}</span>
+        </div>
+
+        <el-divider>处理结论</el-divider>
+        <el-alert :title="currentAbnormal.conclusion" :type="currentAbnormal.indicator === 'warning' ? 'error' : currentAbnormal.indicator === 'attention' ? 'warning' : 'success'" :closable="false" show-icon />
+
+        <el-divider>观察安排</el-divider>
+        <div class="observe-schedule">
+          <div class="schedule-item">
+            <span class="schedule-label">观察频率</span>
+            <span class="schedule-value">{{ currentAbnormal.observationFrequency }}</span>
+          </div>
+          <div class="schedule-item" v-if="currentAbnormal.nextRecheckTime">
+            <span class="schedule-label">下次复查</span>
+            <span class="schedule-value">{{ formatDateTime(currentAbnormal.nextRecheckTime) }}</span>
+          </div>
+        </div>
+
+        <el-divider>温馨提示</el-divider>
+        <div class="detail-tips">
+          <div v-for="(tip, idx) in currentAbnormal.tips" :key="idx" class="tip-item">
+            <el-icon :size="14" color="#909399"><InfoFilled /></el-icon>
+            <span>{{ tip }}</span>
+          </div>
+        </div>
+
+        <div class="detail-footer">
+          <el-icon :size="14" color="#e6a23c"><WarningFilled /></el-icon>
+          <span>宝宝的健康时刻被专业团队关注，如有任何紧急情况护士会第一时间联系您。如需了解更多细节，请联系护士长或专属月嫂。</span>
+        </div>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { babyApi, observationApi, motherApi } from '@/api'
+import { ElMessage } from 'element-plus'
+import { babyApi, observationApi, motherApi, babyAbnormalApi } from '@/api'
+import dayjs from 'dayjs'
 
 const loading = ref(false)
 const babies = ref([])
+const abnormalDetailVisible = ref(false)
+const currentAbnormal = ref(null)
 
 const defaultWeightTrend = [
   { date: '06-10', conclusion: '正常' },
@@ -223,18 +308,27 @@ const fetchData = async () => {
     const motherList = Array.isArray(mothers) ? mothers : (mothers?.list || [])
     if (motherList.length > 0) {
       const motherId = motherList[0].id
-      const babyData = await babyApi.list({ motherId })
+      const [babyData, abnormalData] = await Promise.all([
+        babyApi.list({ motherId }),
+        babyAbnormalApi.list({ motherId })
+      ])
       const babyList = Array.isArray(babyData) ? babyData : (babyData?.list || [])
-      babies.value = babyList.map(b => ({
-        ...b,
-        todaySleep: b.todaySleep || '约15-16小时',
-        feedCount: b.feedCount || 8,
-        weight: b.weight || '3.5kg',
-        excretion: b.excretion || 5,
-        jaundiceStatus: b.jaundiceStatus || '正常',
-        weightTrend: defaultWeightTrend,
-        careRecords: defaultCareRecords
-      }))
+      const abnormalList = Array.isArray(abnormalData) ? abnormalData : (abnormalData?.data || abnormalData?.list || [])
+
+      babies.value = babyList.map(b => {
+        const babyAbnormals = abnormalList.filter(a => a.babyId === b.id) || []
+        return {
+          ...b,
+          todaySleep: b.todaySleep || '约15-16小时',
+          feedCount: b.feedCount || 8,
+          weight: b.weight || '3.5kg',
+          excretion: b.excretion || 5,
+          jaundiceStatus: b.jaundiceStatus || '正常',
+          weightTrend: defaultWeightTrend,
+          careRecords: defaultCareRecords,
+          abnormalRecords: babyAbnormals.filter(a => a.status !== 'resolved').slice(0, 3)
+        }
+      })
     }
     if (babies.value.length === 0) {
       babies.value = mockBabies
@@ -245,6 +339,25 @@ const fetchData = async () => {
   } finally {
     loading.value = false
   }
+}
+
+const abnormalIndicatorType = (indicator) => {
+  const map = {
+    normal: 'success',
+    attention: 'warning',
+    warning: 'danger'
+  }
+  return map[indicator] || 'info'
+}
+
+const formatDateTime = (d) => {
+  if (!d) return '-'
+  return dayjs(d).format('YYYY-MM-DD HH:mm')
+}
+
+const viewAbnormalDetail = (item) => {
+  currentAbnormal.value = item
+  abnormalDetailVisible.value = true
 }
 
 onMounted(fetchData)
@@ -537,5 +650,163 @@ onMounted(fetchData)
   font-size: 13px;
   color: #606266;
   line-height: 1.5;
+}
+
+.abnormal-card {
+  border: 1px solid #fecaca;
+  background: linear-gradient(135deg, #fef2f2 0%, #fff1f2 100%);
+
+  :deep(.el-card__header) {
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  }
+
+  .header-title {
+    color: #b91c1c;
+  }
+
+  .abnormal-count {
+    font-weight: 600;
+  }
+}
+
+.abnormal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.abnormal-item {
+  padding: 14px 16px;
+  background: #ffffff;
+  border-radius: 10px;
+  border: 1px solid #fecaca;
+  cursor: pointer;
+  transition: all 0.3s;
+
+  &:hover {
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.1);
+    transform: translateY(-1px);
+  }
+}
+
+.abnormal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.abnormal-date {
+  font-size: 12px;
+  color: #909399;
+}
+
+.abnormal-conclusion {
+  font-size: 14px;
+  color: #303133;
+  line-height: 1.6;
+  margin-bottom: 10px;
+}
+
+.abnormal-info {
+  display: flex;
+  gap: 20px;
+  padding-top: 8px;
+  border-top: 1px dashed #fde2e2;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  .info-label {
+    font-size: 12px;
+    color: #909399;
+  }
+
+  .info-value {
+    font-size: 13px;
+    color: #606266;
+    font-weight: 500;
+  }
+}
+
+.abnormal-footer-tip {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: #fef9c3;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #854d0e;
+  line-height: 1.5;
+}
+
+.abnormal-detail {
+  .detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .detail-date {
+    font-size: 13px;
+    color: #909399;
+  }
+}
+
+.observe-schedule {
+  padding: 14px 18px;
+  background: #f0f9eb;
+  border-radius: 10px;
+
+  .schedule-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+
+    .schedule-label {
+      color: #606266;
+      font-size: 14px;
+    }
+
+    .schedule-value {
+      color: #303133;
+      font-size: 14px;
+      font-weight: 500;
+    }
+  }
+}
+
+.detail-tips {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  .tip-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    font-size: 13px;
+    color: #606266;
+    line-height: 1.5;
+  }
+}
+
+.detail-footer {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 12px 14px;
+  background: #fff7e6;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #874d00;
+  line-height: 1.6;
 }
 </style>

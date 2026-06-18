@@ -59,7 +59,13 @@ export const visitorApi = {
   create: (data) => request.post('/visitors', data),
   update: (id, data) => request.put(`/visitors/${id}`, data),
   checkIn: (id, data) => request.post(`/visitors/${id}/checkin`, data),
-  checkOut: (id) => request.post(`/visitors/${id}/checkout`),
+  checkOut: (id, data) => request.post(`/visitors/${id}/checkout`, data),
+  checkConflicts: (data) => request.post('/visitors/check-conflicts', data),
+  approveSpecial: (id, data) => request.post(`/visitors/${id}/approve-special`, data),
+  getAuthList: (params) => request.get('/visitors/auth-list', { params }),
+  addAuth: (data) => request.post('/visitors/auth-list', data),
+  updateAuth: (id, data) => request.put(`/visitors/auth-list/${id}`, data),
+  removeAuth: (id) => request.delete(`/visitors/auth-list/${id}`),
   remove: (id) => request.delete(`/visitors/${id}`)
 }
 
@@ -120,6 +126,17 @@ export const observationApi = {
   create: (data) => request.post('/observations', data),
   update: (id, data) => request.put(`/observations/${id}`, data),
   remove: (id) => request.delete(`/observations/${id}`)
+}
+
+export const babyAbnormalApi = {
+  list: (params) => request.get('/baby-abnormal', { params }),
+  get: (id) => request.get(`/baby-abnormal/${id}`),
+  create: (data) => request.post('/baby-abnormal', data),
+  update: (id, data) => request.put(`/baby-abnormal/${id}`, data),
+  handle: (id, data) => request.post(`/baby-abnormal/${id}/handle`, data),
+  recheck: (id, data) => request.post(`/baby-abnormal/${id}/recheck`, data),
+  resolve: (id, data) => request.post(`/baby-abnormal/${id}/resolve`, data),
+  remove: (id) => request.delete(`/baby-abnormal/${id}`)
 }
 
 export const familyApi = {

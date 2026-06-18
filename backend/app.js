@@ -18,6 +18,7 @@ const handoverRoutes = require('./routes/handovers');
 const contractRoutes = require('./routes/contracts');
 const taskRoutes = require('./routes/tasks');
 const observationRoutes = require('./routes/observations');
+const babyAbnormalRoutes = require('./routes/babyAbnormal');
 const familyRoutes = require('./routes/family');
 
 const { authenticateToken, checkRole } = require('./middleware/auth');
@@ -53,6 +54,7 @@ app.use('/api/handovers', authenticateToken, handoverRoutes);
 app.use('/api/contracts', authenticateToken, contractRoutes);
 app.use('/api/tasks', authenticateToken, taskRoutes);
 app.use('/api/observations', authenticateToken, observationRoutes);
+app.use('/api/baby-abnormal', authenticateToken, babyAbnormalRoutes);
 app.use('/api/family', authenticateToken, familyRoutes);
 
 app.use((err, req, res, next) => {
